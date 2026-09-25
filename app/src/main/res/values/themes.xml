@@ -1,0 +1,9 @@
+<resources>
+    <style name="Theme.VodApp" parent="android:Theme.Material.NoActionBar">
+        <item name="android:statusBarColor">#121212</item>
+        <item name="android:windowBackground">#121212</item>
+    </style>
+    <style name="Theme.VodApp.Fullscreen" parent="Theme.VodApp">
+        <item name="android:windowFullscreen">true</item>
+    </style>
+</resources>
