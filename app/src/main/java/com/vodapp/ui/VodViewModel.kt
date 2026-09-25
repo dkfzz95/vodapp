@@ -51,54 +51,35 @@ class VodViewModel : ViewModel() {
         loadHome()
     }
 
-    /** 带重试的获取：空 list 或异常时重试，最多 try 次 */
-    private suspend fun fetchWithRetry(block: suspend () -> ListResponse): ListResponse {
-        var lastError: Exception? = null
-        repeat(3) { attempt ->
-            try {
-                val resp = block()
-                // 空 list 且 class 也为空，视为失败重试；有数据或空但成功都返回
-                if (resp.list.isNotEmpty() || resp.`class`.isNotEmpty()) {
-                    return resp
-                }
-                lastError = Exception("返回为空")
-            } catch (e: Exception) {
-                lastError = e
-            }
-            if (attempt < 2) delay(600)
-        }
-        throw lastError ?: Exception("加载失败")
-    }
-
-    /** 探测可用源，返回第一个能连通的源 */
-    private suspend fun probeAvailableSource(): SourceConfig? = withContext(Dispatchers.IO) {
-        for (s in AppConfig.sources) {
-            for (attempt in 0..2) {
-                try {
-                    val c = ApiClient(s.api)
-                    val r = c.home(1)
-                    if (r.list.isNotEmpty()) return@withContext s
-                } catch (e: Exception) {
-                    // 重试
-                }
-                delay(400)
-            }
-        }
-        null
+    /** 手动切换数据源 */
+    fun switchSource(index: Int) {
+        val src = AppConfig.sources.getOrNull(index) ?: return
+        client = ApiClient(src.api)
+        _activeSource.value = src
+        loadHome(1)
     }
 
     fun loadHome(page: Int = 1) {
         viewModelScope.launch {
             _home.value = _home.value.copy(loading = true, error = null)
             try {
-                // 主动探测可用源
-                val src = probeAvailableSource()
-                if (src != null) {
-                    client = ApiClient(src.api)
-                    _activeSource.value = src
-                }
                 val resp = withContext(Dispatchers.IO) {
-                    fetchWithRetry { client.home(page) }
+                    // 简单重试：失败或空则重试
+                    var result: ListResponse? = null
+                    var lastErr: Exception? = null
+                    for (i in 0 until 3) {
+                        try {
+                            val r = client.home(page)
+                            if (r.list.isNotEmpty() || r.`class`.isNotEmpty()) {
+                                result = r
+                                break
+                            }
+                        } catch (e: Exception) {
+                            lastErr = e
+                        }
+                        if (i < 2) delay(500)
+                    }
+                    result ?: throw (lastErr ?: Exception("加载失败"))
                 }
                 _home.value = HomeState(
                     loading = false,
@@ -120,10 +101,20 @@ class VodViewModel : ViewModel() {
             )
             try {
                 val resp = withContext(Dispatchers.IO) {
-                    fetchWithRetry {
-                        if (category.type_id == 0) client.home(page)
-                        else client.category(category.type_id, page)
+                    var result: ListResponse? = null
+                    var lastErr: Exception? = null
+                    for (i in 0 until 3) {
+                        try {
+                            val r = if (category.type_id == 0) client.home(page)
+                            else client.category(category.type_id, page)
+                            if (r.list.isNotEmpty() || r.`class`.isNotEmpty()) {
+                                result = r
+                                break
+                            }
+                        } catch (e: Exception) { lastErr = e }
+                        if (i < 2) delay(500)
                     }
+                    result ?: throw (lastErr ?: Exception("加载失败"))
                 }
                 _home.value = _home.value.copy(
                     loading = false,
@@ -152,14 +143,6 @@ class VodViewModel : ViewModel() {
                 _home.value = _home.value.copy(loading = false, error = e.message ?: "搜索失败")
             }
         }
-    }
-
-    /** 手动切换数据源 */
-    fun switchSource(index: Int) {
-        val src = AppConfig.sources.getOrNull(index) ?: return
-        client = ApiClient(src.api)
-        _activeSource.value = src
-        loadHome(1)
     }
 
     fun loadDetail(vodId: Long) {
