@@ -154,6 +154,14 @@ class VodViewModel : ViewModel() {
         }
     }
 
+    /** 手动切换数据源 */
+    fun switchSource(index: Int) {
+        val src = AppConfig.sources.getOrNull(index) ?: return
+        client = ApiClient(src.api)
+        _activeSource.value = src
+        loadHome(1)
+    }
+
     fun loadDetail(vodId: Long) {
         viewModelScope.launch {
             _detail.value = DetailState(loading = true)

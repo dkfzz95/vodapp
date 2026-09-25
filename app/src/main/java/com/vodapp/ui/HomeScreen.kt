@@ -21,6 +21,7 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import coil.compose.AsyncImage
+import com.vodapp.data.AppConfig
 import com.vodapp.data.Vod
 import kotlinx.coroutines.launch
 
@@ -30,14 +31,18 @@ fun HomeScreen(vm: VodViewModel, onOpen: (Vod) -> Unit) {
     val home by vm.home.collectAsState()
     var showSearch by remember { mutableStateOf(false) }
     var keyword by remember { mutableStateOf("") }
-    val scope = rememberCoroutineScope()
+    var showSourceDialog by remember { mutableStateOf(false) }
+
+    val src = vm.activeSource.collectAsState().value
 
     Column(Modifier.fillMaxSize()) {
-        // 顶栏（显示当前源）
-        val srcName = vm.activeSource.collectAsState().value.name
+        // 顶栏（显示当前源，点击切换）
         TopAppBar(
-            title = { Text("影视·$srcName") },
+            title = { Text("影视") },
             actions = {
+                TextButton(onClick = { showSourceDialog = true }) {
+                    Text(src.name, color = MaterialTheme.colorScheme.primary)
+                }
                 IconButton(onClick = { showSearch = !showSearch }) {
                     Icon(Icons.Default.Search, contentDescription = "搜索")
                 }
@@ -81,6 +86,53 @@ fun HomeScreen(vm: VodViewModel, onOpen: (Vod) -> Unit) {
                 VodGrid(home.vods, onOpen)
             }
         }
+    }
+
+    // 切换源对话框
+    if (showSourceDialog) {
+        AlertDialog(
+            onDismissRequest = { showSourceDialog = false },
+            title = { Text("切换数据源") },
+            text = {
+                Column {
+                    AppConfig.sources.forEachIndexed { i, s ->
+                        val isActive = s.key == src.key
+                        Surface(
+                            shape = RoundedCornerShape(8.dp),
+                            color = if (isActive) MaterialTheme.colorScheme.primary
+                            else MaterialTheme.colorScheme.surface,
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(vertical = 4.dp)
+                                .clickable {
+                                    showSourceDialog = false
+                                    vm.switchSource(i)
+                                }
+                        ) {
+                            Column(Modifier.padding(12.dp)) {
+                                Text(
+                                    s.name + (if (isActive) " ✓" else ""),
+                                    color = if (isActive) MaterialTheme.colorScheme.onPrimary
+                                    else MaterialTheme.colorScheme.onSurface,
+                                    style = MaterialTheme.typography.bodyLarge,
+                                )
+                                if (s.desc.isNotBlank()) {
+                                    Text(
+                                        s.desc,
+                                        color = if (isActive) MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.8f)
+                                        else Color(0xFF888888),
+                                        style = MaterialTheme.typography.bodySmall,
+                                    )
+                                }
+                            }
+                        }
+                    }
+                }
+            },
+            confirmButton = {
+                TextButton(onClick = { showSourceDialog = false }) { Text("关闭") }
+            }
+        )
     }
 }
 
