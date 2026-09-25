@@ -25,33 +25,48 @@ class ApiClient(private val apiBase: String) {
     private fun get(url: String): String {
         val request = Request.Builder().url(url).build()
         client.newCall(request).execute().use { resp ->
-            if (!resp.isSuccessful) throw Exception("HTTP ${resp.code}")
+            if (!resp.isSuccessful) throw Exception("网络错误 HTTP ${resp.code}")
             return resp.body?.string() ?: throw Exception("空响应")
+        }
+    }
+
+    /** 安全 JSON 解析：非 JSON 内容返回友好错误 */
+    private inline fun <reified T> safeDecode(raw: String, what: String): T {
+        val trim = raw.trim()
+        if (trim.isEmpty()) throw Exception("$what：返回为空")
+        if (!trim.startsWith("{") && !trim.startsWith("[")) {
+            // 返回的是纯文本（如「暂不支持搜索」），直接暴露
+            throw Exception(trim.take(60))
+        }
+        return try {
+            json.decodeFromString<T>(trim)
+        } catch (e: Exception) {
+            throw Exception("$what：数据解析失败")
         }
     }
 
     /** 首页列表（含分类树 class 字段） */
     suspend fun home(page: Int = 1): ListResponse {
         val url = "$apiBase?ac=list&pg=$page"
-        return json.decodeFromString<ListResponse>(get(url))
+        return safeDecode(get(url), "加载首页")
     }
 
     /** 分类列表 */
     suspend fun category(typeId: Int, page: Int = 1): ListResponse {
         val url = "$apiBase?ac=list&t=$typeId&pg=$page"
-        return json.decodeFromString<ListResponse>(get(url))
+        return safeDecode(get(url), "加载分类")
     }
 
     /** 搜索 */
     suspend fun search(keyword: String, page: Int = 1): ListResponse {
         val url = "$apiBase?ac=list&wd=$keyword&pg=$page"
-        return json.decodeFromString<ListResponse>(get(url))
+        return safeDecode(get(url), "搜索")
     }
 
     /** 详情 */
     suspend fun detail(vodId: Long): VodDetail? {
         val url = "$apiBase?ac=detail&ids=$vodId"
-        val resp = json.decodeFromString<DetailResponse>(get(url))
+        val resp = safeDecode<DetailResponse>(get(url), "加载详情")
         return resp.list.firstOrNull()
     }
 }

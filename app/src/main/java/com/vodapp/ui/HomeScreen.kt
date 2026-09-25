@@ -15,6 +15,7 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.style.TextOverflow
@@ -150,13 +151,35 @@ fun VodCard(vod: Vod, onOpen: (Vod) -> Unit) {
             .fillMaxWidth()
             .clickable { onOpen(vod) }
     ) {
-        Box(modifier = Modifier.aspectRatio(0.7f)) {
-            AsyncImage(
-                model = vod.vod_pic,
-                contentDescription = vod.vod_name,
-                modifier = Modifier.fillMaxSize(),
-                contentScale = ContentScale.Crop,
-            )
+        // 有海报显示海报，无海报用彩色占位块 + 片名
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .aspectRatio(0.72f)
+                .background(color(pod = vod))
+                .clip(RoundedCornerShape(6.dp))
+        ) {
+            if (vod.vod_pic.isNotBlank()) {
+                AsyncImage(
+                    model = vod.vod_pic,
+                    contentDescription = vod.vod_name,
+                    modifier = Modifier.fillMaxSize(),
+                    contentScale = ContentScale.Crop,
+                )
+            } else {
+                // 无海报：占位块中央显示片名
+                Text(
+                    vod.vod_name,
+                    modifier = Modifier
+                        .align(Alignment.Center)
+                        .padding(8.dp),
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = Color.White,
+                    maxLines = 3,
+                    overflow = TextOverflow.Ellipsis,
+                    textAlign = androidx.compose.ui.text.style.TextAlign.Center,
+                )
+            }
             if (vod.vod_remarks.isNotBlank()) {
                 Surface(
                     color = Color(0xCC000000),
@@ -181,4 +204,14 @@ fun VodCard(vod: Vod, onOpen: (Vod) -> Unit) {
             overflow = TextOverflow.Ellipsis,
         )
     }
+}
+
+// 根据名称生成稳定的占位色
+fun color(pod: Vod): Color {
+    val palette = listOf(
+        Color(0xFF424242), Color(0xFF37474F), Color(0xFF4E342E),
+        Color(0xFF1B5E20), Color(0xFF283593), Color(0xFF6A1B9A),
+        Color(0xFF00695C), Color(0xFF9E9D24), Color(0xFFBF360C),
+    )
+    return palette[(pod.vod_name.hashCode() and 0x7fffffff) % palette.size]
 }
