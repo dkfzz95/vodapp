@@ -32,9 +32,10 @@ fun HomeScreen(vm: VodViewModel, onOpen: (Vod) -> Unit) {
     val scope = rememberCoroutineScope()
 
     Column(Modifier.fillMaxSize()) {
-        // 顶栏
+        // 顶栏（显示当前源）
+        val srcName = vm.activeSource.collectAsState().value.name
         TopAppBar(
-            title = { Text("影视") },
+            title = { Text("影视·$srcName") },
             actions = {
                 IconButton(onClick = { showSearch = !showSearch }) {
                     Icon(Icons.Default.Search, contentDescription = "搜索")
@@ -88,7 +89,13 @@ fun CategoryBar(
     selected: com.vodapp.data.Category?,
     onSelect: (com.vodapp.data.Category) -> Unit
 ) {
-    val rootCats = categories.filter { it.type_pid == 0 }
+    // 有层级时只显示根级；扁平结构（type_pid 全为 -1）时显示全部
+    val hasHierarchy = categories.any { it.type_pid == 0 }
+    val rootCats = if (hasHierarchy) {
+        categories.filter { it.type_pid == 0 }
+    } else {
+        categories
+    }
     // 顶部加一个"全部"
     val all = com.vodapp.data.Category(0, 0, "全部")
     LazyRow(
@@ -97,7 +104,7 @@ fun CategoryBar(
         horizontalArrangement = Arrangement.spacedBy(8.dp)
     ) {
         item {
-            CategoryChip(all, selected?.type_id == 0 && selected != null) { onSelect(all) }
+            CategoryChip(all, selected == null, { onSelect(all) })
         }
         items(rootCats) { cat ->
             val isSel = selected?.type_id == cat.type_id

@@ -33,7 +33,9 @@ data class DetailState(
 
 class VodViewModel : ViewModel() {
 
-    private val client = ApiClient(AppConfig.sources.first().api)
+    // 动态持有可用的 ApiClient（多源自动切换）
+    @Volatile
+    private var client: ApiClient = ApiClient(AppConfig.sources.first().api)
 
     private val _home = MutableStateFlow(HomeState())
     val home: StateFlow<HomeState> = _home
@@ -41,19 +43,38 @@ class VodViewModel : ViewModel() {
     private val _detail = MutableStateFlow(DetailState())
     val detail: StateFlow<DetailState> = _detail
 
-    private val _history = MutableStateFlow<List<String>>(emptyList())
+    private val _activeSource = MutableStateFlow(AppConfig.sources.first())
+    val activeSource: StateFlow<SourceConfig> = _activeSource
 
     init {
         loadHome()
+    }
+
+    /** 探测可用源，返回第一个能连通的源 */
+    private suspend fun probeAvailableSource(): SourceConfig? = withContext(Dispatchers.IO) {
+        for (s in AppConfig.sources) {
+            try {
+                val c = ApiClient(s.api)
+                c.home(1)
+                return@withContext s
+            } catch (e: Exception) {
+                // 继续尝试下一个源
+            }
+        }
+        null
     }
 
     fun loadHome(page: Int = 1) {
         viewModelScope.launch {
             _home.value = _home.value.copy(loading = true, error = null)
             try {
-                val resp = withContext(Dispatchers.IO) {
-                    client.home(page)
+                // 主动探测可用源
+                val src = probeAvailableSource()
+                if (src != null) {
+                    client = ApiClient(src.api)
+                    _activeSource.value = src
                 }
+                val resp = withContext(Dispatchers.IO) { client.home(page) }
                 _home.value = HomeState(
                     loading = false,
                     categories = resp.`class`,

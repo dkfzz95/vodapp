@@ -6,9 +6,11 @@ import kotlinx.serialization.Serializable
 @Serializable
 data class Category(
     val type_id: Int = 0,
-    val type_pid: Int = 0,
+    val type_pid: Int = -1,
     val type_name: String = ""
-)
+) {
+    val isRoot: Boolean get() = type_pid == 0 || type_pid == -1
+}
 
 /** 列表/搜索返回的单条影视 */
 @Serializable
@@ -79,9 +81,11 @@ data class SourceConfig(
 )
 
 object AppConfig {
-    // 主数据源（量子，m3u8 直链，TVBox 友好）
+    // 多数据源（按优先级，App 启动自动探测可用源）
+    // 索尼 suoni 返回直链 m3u8（推荐）；量子 lzizy 也是直链但近期不稳定
     val sources = listOf(
+        SourceConfig("suoni", "索尼资源", "https://suoniapi.com/api.php/provide/vod/"),
         SourceConfig("lzizy", "量子资源", "https://lzizy1.com/api.php/provide/vod/"),
-        // 可扩展更多源
+        SourceConfig("hhzy", "火狐资源", "https://hhzyapi.com/api.php/provide/vod/"),
     )
 }
