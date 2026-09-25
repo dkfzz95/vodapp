@@ -82,8 +82,11 @@ fun HomeScreen(vm: VodViewModel, onOpen: (Vod) -> Unit) {
                     Button(onClick = { vm.loadHome() }) { Text("重试") }
                 }
             }
+            home.vods.isEmpty() -> Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                Text("暂无内容，点击右上角切换数据源试试", color = Color(0xFF888888))
+            }
             else -> {
-                VodGrid(home.vods, onOpen)
+                VodGrid(home.vods, onOpen, Modifier.weight(1f))
             }
         }
     }
@@ -182,10 +185,10 @@ fun CategoryChip(cat: com.vodapp.data.Category, selected: Boolean, onClick: () -
 }
 
 @Composable
-fun VodGrid(vods: List<Vod>, onOpen: (Vod) -> Unit) {
+fun VodGrid(vods: List<Vod>, onOpen: (Vod) -> Unit, modifier: Modifier = Modifier) {
     LazyVerticalGrid(
         columns = GridCells.Adaptive(minSize = 110.dp),
-        modifier = Modifier.fillMaxSize(),
+        modifier = modifier.fillMaxWidth(),
         contentPadding = PaddingValues(8.dp),
         horizontalArrangement = Arrangement.spacedBy(8.dp),
         verticalArrangement = Arrangement.spacedBy(12.dp)
