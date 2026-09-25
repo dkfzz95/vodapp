@@ -4,6 +4,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.vodapp.data.*
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
@@ -50,15 +51,37 @@ class VodViewModel : ViewModel() {
         loadHome()
     }
 
+    /** 带重试的获取：空 list 或异常时重试，最多 try 次 */
+    private suspend fun fetchWithRetry(block: suspend () -> ListResponse): ListResponse {
+        var lastError: Exception? = null
+        repeat(3) { attempt ->
+            try {
+                val resp = block()
+                // 空 list 且 class 也为空，视为失败重试；有数据或空但成功都返回
+                if (resp.list.isNotEmpty() || resp.`class`.isNotEmpty()) {
+                    return resp
+                }
+                lastError = Exception("返回为空")
+            } catch (e: Exception) {
+                lastError = e
+            }
+            if (attempt < 2) delay(600)
+        }
+        throw lastError ?: Exception("加载失败")
+    }
+
     /** 探测可用源，返回第一个能连通的源 */
     private suspend fun probeAvailableSource(): SourceConfig? = withContext(Dispatchers.IO) {
         for (s in AppConfig.sources) {
-            try {
-                val c = ApiClient(s.api)
-                c.home(1)
-                return@withContext s
-            } catch (e: Exception) {
-                // 继续尝试下一个源
+            for (attempt in 0..2) {
+                try {
+                    val c = ApiClient(s.api)
+                    val r = c.home(1)
+                    if (r.list.isNotEmpty()) return@withContext s
+                } catch (e: Exception) {
+                    // 重试
+                }
+                delay(400)
             }
         }
         null
@@ -74,7 +97,9 @@ class VodViewModel : ViewModel() {
                     client = ApiClient(src.api)
                     _activeSource.value = src
                 }
-                val resp = withContext(Dispatchers.IO) { client.home(page) }
+                val resp = withContext(Dispatchers.IO) {
+                    fetchWithRetry { client.home(page) }
+                }
                 _home.value = HomeState(
                     loading = false,
                     categories = resp.`class`,
@@ -83,7 +108,7 @@ class VodViewModel : ViewModel() {
                     pageCount = resp.pagecount,
                 )
             } catch (e: Exception) {
-                _home.value = _home.value.copy(loading = false, error = e.message ?: "加载失败")
+                _home.value = _home.value.copy(loading = false, error = e.message ?: "加载失败，请点重试")
             }
         }
     }
@@ -95,8 +120,10 @@ class VodViewModel : ViewModel() {
             )
             try {
                 val resp = withContext(Dispatchers.IO) {
-                    if (category.type_id == 0) client.home(page)
-                    else client.category(category.type_id, page)
+                    fetchWithRetry {
+                        if (category.type_id == 0) client.home(page)
+                        else client.category(category.type_id, page)
+                    }
                 }
                 _home.value = _home.value.copy(
                     loading = false,
@@ -105,7 +132,7 @@ class VodViewModel : ViewModel() {
                     pageCount = resp.pagecount,
                 )
             } catch (e: Exception) {
-                _home.value = _home.value.copy(loading = false, error = e.message ?: "加载失败")
+                _home.value = _home.value.copy(loading = false, error = e.message ?: "加载失败，请点重试")
             }
         }
     }
