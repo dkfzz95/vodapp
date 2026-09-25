@@ -33,6 +33,7 @@ import com.vodapp.player.PlayerActivity
 fun DetailScreen(vm: VodViewModel, vod: Vod, onBack: () -> Unit) {
     val detail by vm.detail.collectAsState()
     var selectedLine by remember { mutableStateOf<PlayLine?>(null) }
+    val context = LocalContext.current
 
     LaunchedEffect(vod.vod_id) {
         vm.loadDetail(vod.vod_id)
@@ -151,12 +152,11 @@ fun DetailScreen(vm: VodViewModel, vod: Vod, onBack: () -> Unit) {
                     Text("选集", Modifier.padding(horizontal = 12.dp), style = MaterialTheme.typography.titleSmall)
                     EpisodeGrid(selectedLine?.episodes ?: emptyList()) { ep ->
                         // 跳转播放器
-                        val ctx = LocalContext.current
-                        val intent = Intent(ctx, PlayerActivity::class.java).apply {
+                        val intent = Intent(context, PlayerActivity::class.java).apply {
                             putExtra(PlayerActivity.EXTRA_URL, ep.url)
                             putExtra(PlayerActivity.EXTRA_TITLE, "${d?.vod_name ?: vod.vod_name} ${ep.name}")
                         }
-                        ctx.startActivity(intent)
+                        context.startActivity(intent)
                     }
                     Spacer(Modifier.height(24.dp))
                 }
