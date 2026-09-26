@@ -23,6 +23,8 @@ data class HomeState(
     val page: Int = 1,
     val pageCount: Int = 1,
     val selectedCategory: Category? = null,
+    val loadingMore: Boolean = false,
+    val searchKeyword: String = "",
 )
 
 data class DetailState(
@@ -134,7 +136,7 @@ class VodViewModel : ViewModel() {
 
     fun search(keyword: String, page: Int = 1) {
         viewModelScope.launch {
-            _home.value = _home.value.copy(loading = true, error = null)
+            _home.value = _home.value.copy(loading = true, error = null, searchKeyword = keyword)
             try {
                 val resp = withContext(Dispatchers.IO) { client.search(keyword, page) }
                 _home.value = _home.value.copy(
@@ -153,6 +155,37 @@ class VodViewModel : ViewModel() {
                     else -> msg
                 }
                 _home.value = _home.value.copy(loading = false, error = friendly)
+            }
+        }
+    }
+
+    /** 加载下一页（滚动到底部触发） */
+    fun loadMore() {
+        val s = _home.value
+        if (s.loading || s.loadingMore) return
+        if (s.page >= s.pageCount) return
+        val nextPage = s.page + 1
+        viewModelScope.launch {
+            _home.value = s.copy(loadingMore = true)
+            try {
+                val resp = withContext(Dispatchers.IO) {
+                    when {
+                        s.searchKeyword.isNotBlank() -> client.search(s.searchKeyword, nextPage)
+                        s.selectedCategory != null -> {
+                            if (s.selectedCategory.type_id == 0) client.home(nextPage)
+                            else client.category(s.selectedCategory.type_id, nextPage)
+                        }
+                        else -> client.home(nextPage)
+                    }
+                }
+                _home.value = _home.value.copy(
+                    loadingMore = false,
+                    vods = _home.value.vods + resp.list,
+                    page = nextPage,
+                    pageCount = resp.pagecount,
+                )
+            } catch (e: Exception) {
+                _home.value = _home.value.copy(loadingMore = false)
             }
         }
     }

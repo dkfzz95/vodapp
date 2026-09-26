@@ -7,6 +7,7 @@ import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
+import androidx.compose.foundation.lazy.grid.rememberLazyGridState
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
@@ -96,7 +97,7 @@ fun HomeScreen(vm: VodViewModel, onOpen: (Vod) -> Unit) {
                 Text("暂无内容，点击右上角切换数据源试试", color = Color(0xFF888888))
             }
             else -> {
-                VodGrid(home.vods, onOpen, Modifier.weight(1f))
+                VodGrid(home.vods, onOpen, Modifier.weight(1f), onLoadMore = { vm.loadMore() })
             }
         }
     }
@@ -196,9 +197,21 @@ fun CategoryChip(cat: com.vodapp.data.Category, selected: Boolean, onClick: () -
 }
 
 @Composable
-fun VodGrid(vods: List<Vod>, onOpen: (Vod) -> Unit, modifier: Modifier = Modifier) {
+fun VodGrid(vods: List<Vod>, onOpen: (Vod) -> Unit, modifier: Modifier = Modifier, onLoadMore: () -> Unit = {}) {
+    val gridState = rememberLazyGridState()
+    // 滚动到底部时触发加载更多
+    val shouldLoadMore by remember {
+        derivedStateOf {
+            val lastVisible = gridState.layoutInfo.visibleItemsInfo.lastOrNull()?.index ?: -1
+            lastVisible >= gridState.layoutInfo.totalItemsCount - 4
+        }
+    }
+    LaunchedEffect(shouldLoadMore) {
+        if (shouldLoadMore) onLoadMore()
+    }
     LazyVerticalGrid(
         columns = GridCells.Adaptive(minSize = 110.dp),
+        state = gridState,
         modifier = modifier.fillMaxWidth(),
         contentPadding = PaddingValues(8.dp),
         horizontalArrangement = Arrangement.spacedBy(8.dp),
