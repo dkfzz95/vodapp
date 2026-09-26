@@ -75,9 +75,7 @@ class ApiClient(private val apiBase: String) {
 fun parsePlayLines(playFrom: String, playUrl: String): List<PlayLine> {
     if (playUrl.isBlank()) return emptyList()
 
-    // 线路名用 $$$ 分隔，选集组用 # 分隔（可能多线路，每线一组）
-    // 苹果CMS：play_from 用 $$$ 分隔线路；play_url 里同名线路对应，用 $$$ 分隔多线路
-    val fromNames = playFrom.split("$$$").filter { it.isNotBlank() }
+    // 选集组用 $$$ 分隔多线路，每线内 # 分隔各集（name$url）
     val urlBlocks = playUrl.split("$$$")
 
     val result = mutableListOf<PlayLine>()
@@ -95,7 +93,8 @@ fun parsePlayLines(playFrom: String, playUrl: String): List<PlayLine> {
             }
         }
         if (episodes.isNotEmpty()) {
-            val lineName = fromNames.getOrNull(i) ?: "线路${i + 1}"
+            // 线路名改用友好序号，丢弃源站内部代号（如 hhyun/snm3u8 等）
+            val lineName = if (urlBlocks.size > 1) "线路${i + 1}" else "高清"
             result.add(PlayLine(lineName, episodes))
         }
     }
