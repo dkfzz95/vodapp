@@ -24,7 +24,7 @@ fun AppRoot() {
     Box(
         Modifier
             .fillMaxSize()
-            .background(Color(0xFF0D1B2A))
+            .background(Color(0xFF1A2A3A))
     ) {
         when (val s = screen) {
             is Screen.Home -> {

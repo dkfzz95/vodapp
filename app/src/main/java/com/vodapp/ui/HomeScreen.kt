@@ -54,13 +54,23 @@ fun HomeScreen(vm: VodViewModel, onOpen: (Vod) -> Unit) {
                 value = keyword,
                 onValueChange = { keyword = it },
                 modifier = Modifier.fillMaxWidth().padding(horizontal = 12.dp),
-                placeholder = { Text("输入片名") },
+                placeholder = { Text("输入片名", color = Color(0xFF9AA7B8)) },
                 singleLine = true,
+                textStyle = MaterialTheme.typography.bodyLarge.copy(color = Color.White),
+                colors = OutlinedTextFieldDefaults.colors(
+                    focusedTextColor = Color.White,
+                    unfocusedTextColor = Color.White,
+                    cursorColor = Color(0xFF2196F3),
+                    focusedBorderColor = Color(0xFF2196F3),
+                    unfocusedBorderColor = Color(0xFF4A6075),
+                    focusedContainerColor = Color(0xFF243447),
+                    unfocusedContainerColor = Color(0xFF243447),
+                ),
                 trailingIcon = {
                     TextButton(onClick = {
                         vm.search(keyword.trim())
                         showSearch = false
-                    }) { Text("搜索") }
+                    }) { Text("搜索", color = Color.White) }
                 }
             )
         }
