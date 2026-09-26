@@ -12,10 +12,11 @@
         android:theme="@style/Theme.VodApp"
         android:supportsRtl="true">
 
-        <!-- 通用入口：手机 + 电视 -->
+        <!-- 通用入口：手机 + 电视（固定横屏） -->
         <activity
             android:name=".MainActivity"
             android:exported="true"
+            android:screenOrientation="landscape"
             android:configChanges="orientation|screenSize|keyboardHidden|screenLayout|smallestScreenSize"
             android:theme="@style/Theme.VodApp">
             <intent-filter>
@@ -28,6 +29,7 @@
         <activity
             android:name=".player.PlayerActivity"
             android:exported="false"
+            android:screenOrientation="landscape"
             android:configChanges="orientation|screenSize|keyboardHidden|screenLayout|smallestScreenSize"
             android:theme="@style/Theme.VodApp.Fullscreen" />
     </application>
