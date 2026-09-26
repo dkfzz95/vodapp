@@ -66,20 +66,21 @@ class VodViewModel : ViewModel() {
             _home.value = _home.value.copy(loading = true, error = null)
             try {
                 val resp = withContext(Dispatchers.IO) {
-                    // 简单重试：失败或空则重试
+                    // 重试：必须 list 非空才算成功（class 有但 list 空也要重试）
                     var result: ListResponse? = null
                     var lastErr: Exception? = null
-                    for (i in 0 until 3) {
+                    for (i in 0 until 4) {
                         try {
                             val r = client.home(page)
-                            if (r.list.isNotEmpty() || r.`class`.isNotEmpty()) {
+                            if (r.list.isNotEmpty()) {
                                 result = r
                                 break
                             }
+                            lastErr = Exception("内容为空")
                         } catch (e: Exception) {
                             lastErr = e
                         }
-                        if (i < 2) delay(500)
+                        if (i < 3) delay(800)
                     }
                     result ?: throw (lastErr ?: Exception("加载失败"))
                 }
@@ -105,16 +106,17 @@ class VodViewModel : ViewModel() {
                 val resp = withContext(Dispatchers.IO) {
                     var result: ListResponse? = null
                     var lastErr: Exception? = null
-                    for (i in 0 until 3) {
+                    for (i in 0 until 4) {
                         try {
                             val r = if (category.type_id == 0) client.home(page)
                             else client.category(category.type_id, page)
-                            if (r.list.isNotEmpty() || r.`class`.isNotEmpty()) {
+                            if (r.list.isNotEmpty()) {
                                 result = r
                                 break
                             }
+                            lastErr = Exception("内容为空")
                         } catch (e: Exception) { lastErr = e }
-                        if (i < 2) delay(500)
+                        if (i < 3) delay(800)
                     }
                     result ?: throw (lastErr ?: Exception("加载失败"))
                 }
