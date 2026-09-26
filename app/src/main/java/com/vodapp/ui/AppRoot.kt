@@ -1,11 +1,13 @@
 package com.vodapp.ui
 
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material3.Text
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.vodapp.data.Vod
 
@@ -19,7 +21,11 @@ fun AppRoot() {
     val vm: VodViewModel = viewModel()
     var screen by remember { mutableStateOf<Screen>(Screen.Home) }
 
-    Box(Modifier.fillMaxSize()) {
+    Box(
+        Modifier
+            .fillMaxSize()
+            .background(Color(0xFF0D1B2A))
+    ) {
         when (val s = screen) {
             is Screen.Home -> {
                 HomeScreen(vm) { vod ->

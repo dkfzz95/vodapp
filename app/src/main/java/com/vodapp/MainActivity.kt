@@ -24,12 +24,13 @@ class MainActivity : ComponentActivity() {
 }
 
 private val DarkColors = darkColorScheme(
-    primary = Color(0xFFE53935),
+    primary = Color(0xFF1E88E5),
     onPrimary = Color.White,
-    background = Color(0xFF121212),
-    surface = Color(0xFF1E1E1E),
+    background = Color(0xFF0D1B2A),
+    surface = Color(0xFF1B263B),
     onBackground = Color(0xFFE0E0E0),
     onSurface = Color(0xFFE0E0E0),
+    surfaceVariant = Color(0xFF1F2B3E),
 )
 
 @Composable

@@ -56,6 +56,8 @@ class VodViewModel : ViewModel() {
         val src = AppConfig.sources.getOrNull(index) ?: return
         client = ApiClient(src.api)
         _activeSource.value = src
+        // 重置分类选中状态
+        _home.value = _home.value.copy(selectedCategory = null)
         loadHome(1)
     }
 
@@ -140,7 +142,15 @@ class VodViewModel : ViewModel() {
                     pageCount = resp.pagecount,
                 )
             } catch (e: Exception) {
-                _home.value = _home.value.copy(loading = false, error = e.message ?: "搜索失败")
+                val msg = e.message ?: "搜索失败"
+                val friendly = when {
+                    msg.contains("暂不支持搜索") || msg.contains("不支持") ->
+                        "当前源不支持搜索，请切换到「极速影视」或「量子资源」"
+                    msg.contains("403") || msg.contains("拒绝") ->
+                        "搜索被拒绝，请切换到「极速影视」"
+                    else -> msg
+                }
+                _home.value = _home.value.copy(loading = false, error = friendly)
             }
         }
     }

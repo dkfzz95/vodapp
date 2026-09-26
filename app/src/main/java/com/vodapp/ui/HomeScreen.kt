@@ -145,12 +145,13 @@ fun CategoryBar(
     selected: com.vodapp.data.Category?,
     onSelect: (com.vodapp.data.Category) -> Unit
 ) {
-    // 有层级时只显示根级；扁平结构（type_pid 全为 -1）时显示全部
+    // 有层级时只显示根级；扁平结构显示全部（但限制数量避免太多）
     val hasHierarchy = categories.any { it.type_pid == 0 }
     val rootCats = if (hasHierarchy) {
         categories.filter { it.type_pid == 0 }
     } else {
-        categories
+        // 扁平结构：只显示前 24 个，避免太多分类
+        categories.take(24)
     }
     // 顶部加一个"全部"
     val all = com.vodapp.data.Category(0, 0, "全部")
