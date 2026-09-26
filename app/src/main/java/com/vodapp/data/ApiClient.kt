@@ -45,21 +45,28 @@ class ApiClient(private val apiBase: String) {
         }
     }
 
-    /** 首页列表（含分类树 class 字段） */
+    /** 首页列表（ac=videolist 返回带海报的完整字段） */
     suspend fun home(page: Int = 1): ListResponse {
-        val url = "$apiBase?ac=list&pg=$page"
+        val url = "$apiBase?ac=videolist&pg=$page"
         return safeDecode(get(url), "加载首页")
     }
 
-    /** 分类列表 */
+    /** 分类树（ac=list&t=1 返回 class 字段） */
+    suspend fun categories(): List<Category> {
+        val url = "$apiBase?ac=list&t=1"
+        val resp = safeDecode<ListResponse>(get(url), "加载分类")
+        return resp.`class`
+    }
+
+    /** 分类列表（用 videolist 带海报） */
     suspend fun category(typeId: Int, page: Int = 1): ListResponse {
-        val url = "$apiBase?ac=list&t=$typeId&pg=$page"
+        val url = "$apiBase?ac=videolist&t=$typeId&pg=$page"
         return safeDecode(get(url), "加载分类")
     }
 
-    /** 搜索 */
+    /** 搜索（用 videolist 带海报） */
     suspend fun search(keyword: String, page: Int = 1): ListResponse {
-        val url = "$apiBase?ac=list&wd=$keyword&pg=$page"
+        val url = "$apiBase?ac=videolist&wd=$keyword&pg=$page"
         return safeDecode(get(url), "搜索")
     }
 

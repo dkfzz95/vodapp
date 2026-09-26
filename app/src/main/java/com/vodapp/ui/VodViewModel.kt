@@ -65,31 +65,31 @@ class VodViewModel : ViewModel() {
         viewModelScope.launch {
             _home.value = _home.value.copy(loading = true, error = null)
             try {
-                val resp = withContext(Dispatchers.IO) {
-                    // 重试：必须 list 非空才算成功（class 有但 list 空也要重试）
-                    var result: ListResponse? = null
+                // 并行请求：分类树 + 带海报的列表
+                val (cats, listResp) = withContext(Dispatchers.IO) {
+                    // 列表带重试
+                    var listR: ListResponse? = null
                     var lastErr: Exception? = null
                     for (i in 0 until 4) {
                         try {
                             val r = client.home(page)
-                            if (r.list.isNotEmpty()) {
-                                result = r
-                                break
-                            }
+                            if (r.list.isNotEmpty()) { listR = r; break }
                             lastErr = Exception("内容为空")
-                        } catch (e: Exception) {
-                            lastErr = e
-                        }
+                        } catch (e: Exception) { lastErr = e }
                         if (i < 3) delay(800)
                     }
-                    result ?: throw (lastErr ?: Exception("加载失败"))
+                    val li = listR ?: throw (lastErr ?: Exception("加载失败"))
+                    // 分类树单独拿（失败不阻塞列表）
+                    var cats: List<Category> = emptyList()
+                    try { cats = client.categories() } catch (e: Exception) {}
+                    cats to li
                 }
                 _home.value = HomeState(
                     loading = false,
-                    categories = resp.`class`,
-                    vods = resp.list,
+                    categories = cats,
+                    vods = listResp.list,
                     page = page,
-                    pageCount = resp.pagecount,
+                    pageCount = listResp.pagecount,
                 )
             } catch (e: Exception) {
                 _home.value = _home.value.copy(loading = false, error = e.message ?: "加载失败，请点重试")
